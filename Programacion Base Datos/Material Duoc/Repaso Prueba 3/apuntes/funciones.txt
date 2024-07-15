@@ -1,0 +1,92 @@
+create or replace function cant_empleados(v_id_depa number)
+return number
+
+
+is
+    v_cant_empleados number;
+
+begin
+        select count(employee_id)
+        into v_cant_empleados
+        from employees
+        where department_id = v_id_depa;
+        
+        return v_cant_empleados;
+        
+exception
+    when no_data_found then
+        insert into error_proceso values(sysdate, 'cant_empleados', 'no se encontro el departamento');
+    when others then
+        insert into error_proceso values(sysdate, 'cant_empleados', 'OTRO ERROR');
+
+
+end;
+
+/*create table error_proceso(
+    fecha_proceso date,
+    proceso varchar(250),
+    msg_error varchar(250)
+    )
+*/
+
+
+------------------------------------------------------------------------
+/*cree una funcion que ingresando el dato employee_id,retorne el pais en el que vive el empleado*/
+
+
+
+
+CREATE OR REPLACE FUNCTION VER_PAIS(V_EMPLOYEE_ID NUMBER)
+RETURN VARCHAR
+IS
+    V_NOMBRE_PAIS VARCHAR(100);
+
+BEGIN
+    SELECT C.COUNTRY_NAME
+    INTO V_NOMBRE_PAIS
+    FROM COUNTRIES C
+     RIGHT JOIN LOCATIONS L ON C.COUNTRY_ID = L.COUNTRY_ID
+     RIGHT JOIN DEPARTMENTS D ON D.LOCATION_ID = L.LOCATION_ID
+     RIGHT JOIN EMPLOYEES E ON E.DEPARTMENT_ID = D.DEPARTMENT_ID
+    WHERE E.EMPLOYEE_ID = V_EMPLOYEE_ID;
+    
+    RETURN V_NOMBRE_PAIS;
+    
+
+
+
+END;
+--------------------------------------------------------------------------
+/*cree una funcion que permita ingresar el id de un empleado, y que retorne el nombre del jefe*/
+
+
+CREATE OR REPLACE FUNCTION MANAGER_NAME(V_EMPLOYEE_ID NUMBER)
+RETURN VARCHAR
+IS
+    V_NOMBRE_JEFE VARCHAR(100);
+    
+
+BEGIN
+    SELECT JEFES.FIRST_NAME 
+    INTO V_NOMBRE_JEFE
+    FROM EMPLOYEES EMP
+    JOIN EMPLOYEES JEFES ON EMP.MANAGER_ID = JEFES.EMPLOYEE_ID
+    WHERE EMP.EMPLOYEE_ID = V_EMPLOYEE_ID;
+    
+    RETURN V_NOMBRE_JEFE;
+   
+
+
+END;
+-----
+SELECT DEPARTMENT_ID, DEPARTMENT_NAME, CANT_EMPLEADOS(DEPARTMENT_ID)
+FROM DEPARTMENTS;
+----------------------------------------------
+
+SELECT EMPLOYEE_ID, FIRST_NAME||' '||LAST_NAME, VER_PAIS(EMPLOYEE_ID)
+FROM EMPLOYEES;
+---------------------------------------------
+
+SELECT FIRST_NAME, SALARY, MANAGER_NAME(EMPLOYEE_ID) JEFE
+FROM EMPLOYEES
+WHERE EMPLOYEE_ID =145

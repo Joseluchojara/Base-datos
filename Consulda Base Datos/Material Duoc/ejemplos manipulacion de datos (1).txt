@@ -1,0 +1,47 @@
+/*
+1.- Respaldar tabla camion
+CREATE TABLE CamionRespaldo AS SELECT * FROM camion;
+
+2.- Respaldar tabla cliente
+CREATE TABLE ClienteRespaldo AS SELECT * FROM cliente;
+3.- Respaldar tabla comuna
+CREATE TABLE comunaRespaldo AS SELECT * FROM comuna;
+
+4.- Eliminar desde el respaldo de cliente, todos aquellos clientes
+    cuyo apellido inicie con "P"
+
+DELETE 
+   FROM clienteRespaldo 
+   WHERE substr( appaterno_cli,1,1)='P';
+ ROLLBACK;
+    
+5.- Reemplazar los datos de la tabla comuna, colocando los nombres
+    en mayúsculas
+
+SELECT * from comuna  
+SAVEPOINT A;
+UPDATE comuna SET nombre_comuna = upper(nombre_comuna);
+ROLLBACK TO A;   
+
+6.- Eliminar completamente la tabla de respaldo de clientes, usando
+    Delete, luego recuperar los datos borrados y eliminar la tabla
+    con truncate, verifique con select cada uno de los pasos.
+
+SAVEPOINT B;
+DELETE FROM clienteRespaldo;
+select * from clienteRespaldo;
+Rollback to B;
+SAVEPOINT C;
+Truncate Table clienteRespaldo;
+Rollback to C;
+    
+7.- Aumentar el sueldo_base de los empleados, con 1,000,000 pesos
+    adicionales
+UPDATE empleado SET sueldo_base = sueldo_base + 1000000;
+select sueldo_base from empleado;
+  
+ROLLBACk;
+    
+8.- Guardar los datos en la base de datos en forma física
+COMMIT;  
+*/

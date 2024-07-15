@@ -1,0 +1,110 @@
+DECLARE
+    -- Variables de entrada
+    v_fecha_proceso DATE := TO_DATE('01-06-2021', 'DD-MM-YYYY');
+    v_limite_asignacion NUMBER := 250000;
+
+    -- Variables para cálculos
+    v_run_profesional VARCHAR2(20);
+    v_nombre_profesional VARCHAR2(100);
+    v_apellido_profesional VARCHAR2(100);
+    v_profesion VARCHAR2(100);
+    v_num_asesorias NUMBER;
+    v_total_honorarios NUMBER;
+    v_asignacion_movilizacion NUMBER;
+    v_asignacion_tipo_contrato NUMBER;
+    v_asignacion_profesion NUMBER;
+    v_total_asignaciones NUMBER;
+    v_error_id NUMBER;
+    v_mensaje_error VARCHAR2(4000);
+
+    -- Cursores
+    CURSOR c_profesionales IS
+        SELECT p.run, p.nombre, p.apellido, p.profesion, p.comuna
+        FROM profesional p;
+
+    -- Excepciones
+    e_asignacion_excedida EXCEPTION;
+    PRAGMA EXCEPTION_INIT(e_asignacion_excedida, -20001);
+
+BEGIN
+    -- Reiniciar secuencia de errores
+    EXECUTE IMMEDIATE 'DROP SEQUENCE sq_error';
+    EXECUTE IMMEDIATE 'CREATE SEQUENCE sq_error START WITH 1 INCREMENT BY 1';
+
+    -- Truncar tablas
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE detalle_asignacion_mes';
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE resumen_mes_profesion';
+    EXECUTE IMMEDIATE 'TRUNCATE TABLE errores_proceso';
+
+    -- Procesar profesionales
+    FOR r_profesional IN c_profesionales LOOP
+        BEGIN
+            -- Inicializar variables
+            v_run_profesional := r_profesional.run;
+            v_nombre_profesional := r_profesional.nombre;
+            v_apellido_profesional := r_profesional.apellido;
+            v_profesion := r_profesional.profesion;
+
+            -- Calcular número de asesorías y total de honorarios
+            SELECT COUNT(*), SUM(honorario)
+            INTO v_num_asesorias, v_total_honorarios
+            FROM asesoria
+            WHERE numrun_prof = v_run_profesional
+              AND TO_CHAR(inicio_asesoria, 'MM-YYYY') = TO_CHAR(v_fecha_proceso, 'MM-YYYY');
+
+            -- Calcular asignación de movilización
+            v_asignacion_movilizacion := CASE
+                WHEN r_profesional.comuna = 'Santiago' AND v_total_honorarios < 350000 THEN v_total_honorarios * 0.02
+                WHEN r_profesional.comuna = 'Ñuñoa' THEN v_total_honorarios * 0.04
+                WHEN r_profesional.comuna = 'La Reina' AND v_total_honorarios < 400000 THEN v_total_honorarios * 0.05
+                WHEN r_profesional.comuna = 'La Florida' AND v_total_honorarios < 800000 THEN v_total_honorarios * 0.07
+                WHEN r_profesional.comuna = 'Macul' AND v_total_honorarios < 680000 THEN v_total_honorarios * 0.09
+                ELSE 0
+            END;
+
+            -- Asignación por tipo de contrato
+            SELECT porcentaje
+            INTO v_asignacion_tipo_contrato
+            FROM tipo_contrato
+            WHERE tipo_contrato = (SELECT tipo_contrato FROM profesional WHERE run = v_run_profesional);
+
+            v_asignacion_tipo_contrato := v_total_honorarios * v_asignacion_tipo_contrato / 100;
+
+            -- Asignación por profesión
+            SELECT asignacion
+            INTO v_asignacion_profesion
+            FROM porcentaje_profesion
+            WHERE cod_profesion = (SELECT cod_profesion FROM profesional WHERE run = v_run_profesional);
+
+            v_asignacion_profesion := v_total_honorarios * v_asignacion_profesion / 100;
+
+            -- Calcular total de asignaciones
+            v_total_asignaciones := v_asignacion_movilizacion + v_asignacion_tipo_contrato + v_asignacion_profesion;
+
+            -- Verificar límite de asignación
+            IF v_total_asignaciones > v_limite_asignacion THEN
+                RAISE e_asignacion_excedida;
+            END IF;
+
+            -- Insertar datos en tabla de detalle
+            INSERT INTO detalle_asignacion_mes (mes_proceso, run_profesional, nombre, apellido, profesion, num_asesorias, total_honorarios, asignacion_movilizacion, asignacion_tipo_contrato, asignacion_profesion, total_asignaciones)
+            VALUES (v_fecha_proceso, v_run_profesional, v_nombre_profesional, v_apellido_profesional, v_profesion, v_num_asesorias, v_total_honorarios, v_asignacion_movilizacion, v_asignacion_tipo_contrato, v_asignacion_profesion, v_total_asignaciones);
+
+        EXCEPTION
+            WHEN e_asignacion_excedida THEN
+                v_total_asignaciones := v_limite_asignacion;
+                INSERT INTO errores_proceso (error_id, mensaje_error_oracle, mensaje_error_usr)
+                VALUES (sq_error.NEXTVAL, 'Asignación excedida', 'La asignación total excedió el límite permitido.');
+        END;
+    END LOOP;
+
+    COMMIT;
+EXCEPTION
+    WHEN OTHERS THEN
+        v_error_id := sq_error.NEXTVAL;
+        v_mensaje_error := SQLERRM;
+        INSERT INTO errores_proceso (error_id, mensaje_error_oracle, mensaje_error_usr)
+        VALUES (v_error_id, v_mensaje_error, 'Error desconocido.');
+        ROLLBACK;
+END;
+/

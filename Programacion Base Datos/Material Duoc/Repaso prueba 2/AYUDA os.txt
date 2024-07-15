@@ -1,0 +1,244 @@
+--Experiencia 11 (CURSORES)
+--(Estructura de cursores)
+/Crea el cursor/                                  CURSOR nombre_cursor IS
+/Construyo la consulta SQL/                       sentencia_select;
+/Abro el cursor/                                  OPEN nombre_cursor;
+/Fectch recupera la fila y avanza al siguiente/   FETCH nombre_cursor INTO lista_de_variables;
+/Cierra el cursor/                                Close cursor;
+
+--Sintaxis completa de un cursor.
+DECLARE
+CURSOR cur_emp IS
+
+   SELECT employee_id, last_name 
+       FROM employees
+    WHERE department_id =30;
+
+lname   employees.last_name%TYPE;
+empno   employees.employee_id%TYPE;
+BEGIN
+   OPEN cur_emp;
+   FETCH cur_emp INTO empno, lname;
+   DBMS_OUTPUT.PUT_LINE(empno || '   ' || lname);    
+   CLOSE cur_emp;
+END;
+
+--Sintaxis de cursosr con ciclo integrado (Loop Basico)
+DECLARE
+  CURSOR c_emp_cursor IS 
+   SELECT employee_id, last_name FROM employees
+   WHERE department_id =30;
+  v_empno employees.employee_id%TYPE;
+  v_lname employees.last_name%TYPE;
+BEGIN
+  OPEN c_emp_cursor;
+  LOOP
+    FETCH c_emp_cursor INTO v_empno, v_lname;
+    EXIT WHEN c_emp_cursor%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE( v_empno ||'  '||v_lname);  
+  END LOOP;
+END;
+
+--Sintaxis de cursor con ciclo integrado (FOR INTEGRADO).
+DECLARE
+  CURSOR cur_emp IS 
+   SELECT employee_id, last_name 
+       FROM employees
+    WHERE department_id =30; 
+BEGIN
+   FOR reg_emp IN cur_emp LOOP
+       DBMS_OUTPUT.PUT_LINE( reg_emp.employee_id || ' ' || reg_emp.last_name);   
+   END LOOP; 
+END;
+
+--Cursores con parametros.
+DECLARE
+ CURSOR   emp_cursor (p_deptno NUMBER) IS
+       SELECT  employee_id, last_name
+          FROM  employees
+       WHERE   department_id = p_deptno;
+v_empno      employees.employee_id%TYPE;
+v_lname      employees.last_name%TYPE;
+BEGIN
+   OPEN emp_cursor (30);
+   DBMS_OUTPUT.PUT_LINE('Empleados Depto 30');
+      LOOP
+          FETCH emp_cursor INTO v_empno, v_lname;
+          EXIT WHEN emp_cursor%NOTFOUND; 
+          DBMS_OUTPUT.PUT_LINE('   ' || rpad(v_empno, 19, ' ') ||' '||v_lname);
+      END LOOP;
+   CLOSE emp_cursor;
+   OPEN emp_cursor (20);
+   DBMS_OUTPUT.NEW_LINE();     
+   DBMS_OUTPUT.PUT_LINE('Empleados Depto 20');
+       LOOP
+           FETCH emp_cursor INTO v_empno, v_lname;
+           EXIT WHEN emp_cursor%NOTFOUND; 
+           DBMS_OUTPUT.PUT_LINE('   ' || rpad(v_empno, 19, ' ') ||' '|| v_lname);
+       END LOOP;
+   CLOSE emp_cursor;
+END;
+
+--Cursor con subconsultas
+DECLARE
+CURSOR mi_cursor IS
+   SELECT first_name || ' ' || last_name, salary
+    FROM employees
+    WHERE salary < (SELECT ROUND(AVG(salary))
+                                    FROM employees)
+    ORDER BY salary, last_name;
+nombre   VARCHAR2(50);
+salario   employees.salary%TYPE;
+BEGIN
+   OPEN mi_cursor;
+   DBMS_OUTPUT.PUT_LINE('    FUNCIONARIOS CON SALARIO MENOR AL PROMEDIO  ');
+   DBMS_OUTPUT.PUT_LINE('    ----------------------------------------  ');
+   LOOP
+       FETCH mi_cursor INTO nombre, salario;
+       EXIT WHEN mi_cursor%NOTFOUND;
+       DBMS_OUTPUT.PUT_LINE(rpad(nombre, 25, ' ' ) || ' : ' || TO_CHAR(salario, '$999,999'));
+     END LOOP;
+  CLOSE mi_cursor;
+END;
+
+
+
+--Trabajando con mas de un cursor.
+DECLARE
+ CURSOR cur_deptos IS
+   SELECT department_id, department_name
+     FROM departments;     
+ CURSOR cur_emp_depto(deptno NUMBER) IS
+   SELECT first_name || ' ' || last_name nombre_emp
+     FROM employees
+    WHERE department_id = deptno;
+v_total_emp  NUMBER(2);
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('    Empleados por Departamento');
+  DBMS_OUTPUT.PUT_LINE('===================================');
+  DBMS_OUTPUT.NEW_LINE();
+  FOR reg_deptos IN cur_deptos LOOP
+      DBMS_OUTPUT.PUT_LINE('Departamento: '|| reg_deptos.department_name);     
+      DBMS_OUTPUT.PUT_LINE('====================================='); 
+      v_total_emp := 0;     
+          FOR reg_emp_depto IN cur_emp_depto(reg_deptos.department_id) LOOP
+                   DBMS_OUTPUT.PUT_LINE(reg_emp_depto.nombre_emp);
+                   v_total_emp := v_total_emp + 1;
+          END LOOP;
+          DBMS_OUTPUT.PUT_LINE('=====================================');
+          DBMS_OUTPUT.PUT_LINE('Total de Empleados: ' || v_total_emp);
+          DBMS_OUTPUT.NEW_LINE();
+  END LOOP; 
+END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--Experiencia 12 (Excepciones)
+--Ejemplo de cuando la consulta rtetorna mas de un valor
+DECLARE
+  lname VARCHAR2(15);
+BEGIN
+  SELECT last_name INTO lname 
+      FROM employees 
+   WHERE first_name='John'; 
+   DBMS_OUTPUT.PUT_LINE ('John''s last name is : ' ||lname);
+EXCEPTION
+  WHEN TOO_MANY_ROWS THEN
+  DBMS_OUTPUT.PUT_LINE ('La sentencia SELECT recupera múltiples filas. Considere usar un Cursor Explícito.');
+END;
+
+--Excepcion cuando la consulta recupera más de una fila y cuando no hay resultados.
+DECLARE
+ v_lname VARCHAR2(15);
+BEGIN
+  SELECT last_name 
+       INTO v_lname 
+      FROM employees 
+   WHERE first_name = 'Juanito'; 
+   DBMS_OUTPUT.PUT_LINE ('John''s last name is : ' || v_lname);
+EXCEPTION
+  WHEN TOO_MANY_ROWS THEN
+      DBMS_OUTPUT.PUT_LINE ('La sentencia SELECT recupera múltiples filas');
+  WHEN NO_DATA_FOUND THEN
+      DBMS_OUTPUT.PUT_LINE ('La sentencia SELECT no recupera fila');
+END;
+
+--Insertando datos en tablas con las excepciones
+CREATE SEQUENCE seq_errores;
+CREATE TABLE errores
+(correlativo           NUMBER(10) CONSTRAINT PK_ERRORES PRIMARY KEY,
+ nombre_proceso  VARCHAR2(80),
+ mensaje_error      VARCHAR2(255));
+
+BEGIN
+  INSERT INTO departments(department_id, department_name, manager_id, location_id)
+      VALUES(10, 'Depto Nuevo', 200, 1700);
+EXCEPTION
+  WHEN DUP_VAL_ON_INDEX  THEN
+     INSERT INTO errores 
+     VALUES(seq_errores.NEXTVAL, 'Bloque PL/SQL Inserta Departamento',
+                    'Insertando un valor de Clave Primaria que ya existe');
+     COMMIT;
+END;
+
+--Listado de posibles excepciones.
+/*
+  ACCESS_INTO_NULL (ORA-06530) : Se ha intentado asignar valores a los atributos de un  objeto que no se ha inicializado.
+  CASE_NOT_FOUND (ORA-06592) : Ninguna de las opciones en la cláusula WHEN de una sentencia CASE se ha seleccionado y no se ha definido la cláusula ELSE.
+  COLLECTION_IS_NULL (ORA-06531) : Se intentó asignar valores a una tabla anidad o varray aún no inicializada.
+  CURSOR_ALREADY_OPEN  (ORA-06511) : Se intentó abrir un cursor que ya se encuentra abierto.
+  DUP_VAL_ON_INDEX (ORA-00001) :Se intentó ingresar un valor duplicado en una columna(s) definida(s) como Clave Primaria o Unique en la tabla.
+  INVALID_CURSOR (ORA-01001) : Se ha intentado efectuar una operación no válida sobre un cursor.
+  INVALID_NUMBER (ORA-01722) : La conversión de una cadena de caracteres a número ha fallado cuando esa cadena no representa un número válido.
+  LOGIN_DENIED (ORA-01017) : Se ha conectado al servidor Oracle con un nombre de usuario o password inválido.
+  NO_DATA_FOUND (ORA-01403) : Una sentencia SELECT no retornó valores o se ha referenciado a un elemento no inicializado en una tabla indexada.
+  NOT_LOGGED_ON (ORA-01012) : El programa PL/SQL efectuó una llamada a la Base de Datos sin estar conectado al servidor Oracle
+  PROGRAM_ERROR  (ORA-06501) : PL/SQL tiene un problema interno.
+  STORAGE_ERROR  (ORA-06500) : PL/SQL se quedó sin memoria o la memoria está corrupta.
+  SUBSCRIPT_BEYOND_COUNT  (ORA-06533) : Se ha referenciado un elemento de una tabla anidad o índice de varray mayor que el número de elementos de la colección.
+  SUBSCRIPT_OUTSIDE_LIMIT  (ORA-06532) : Se ha referenciado un elemento de una tabla anidada o índice de varray fuera del rango (Ej. -1).
+  SYS_INVALID_ROWID  (ORA-01410) : Fallo al convertir una cadena de caracteres a un tipo ROWID.
+  TIMEOUT_ON_RESOURCE  (ORA-00051) : Se excedió el tiempo máximo de espera por un recurso de Oracle.
+  TOO_MANY_ROWS (ORA-01422) : Una sentencia SELECT INTO retorna más de una fila.
+  VALUE_ERROR  (ORA-06502) : Ocurrió un error aritmético, de conversión o truncamiento. Por ejemplo cuando se intenta almacenar un valor muy grande en una variable más pequeña.
+  ZERO_DIVIDE  (ORA-01476) : El programa intentó hacer una división por cero.
+*/
+
+--Controlar las wexcepciones en más de 2 bloques begind-end.
+DECLARE
+nombre   employees.first_name%type;
+registro countries%ROWTYPE;
+BEGIN
+    SELECT first_name INTO nombre
+       FROM employees
+     WHERE employee_id = 100;
+            BEGIN
+                    SELECT * INTO registro
+                        FROM countries
+                     WHERE country_id='ZZ';
+            EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No hay fila en countries');
+            END;
+EXCEPTION
+WHEN NO_DATA_FOUND THEN
+   DBMS_OUTPUT.PUT_LINE('No hay fila en employees');
+END;

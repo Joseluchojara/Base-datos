@@ -1,0 +1,38 @@
+create or replace trigger act_job_history
+before
+delete on empleados
+for each row
+begin
+    insert into job_history values
+    (:old.employee_id,
+    :old.hire_date,
+    sysdate,
+    :old.job_id,
+    :old.department_id);
+
+
+end;
+
+delete from empleados where employee_id in (100, 108, 200, 147);
+
+--create table empleados as(select * from employees);
+--select * from job_history;
+
+------
+
+create or replace trigger secure_empeleados
+before
+delete or update on empleados
+
+begin
+    if to_number(to_char(sysdate, 'HH24'))< 9 or to_number(to_char(sysdate, 'HH24')) > 14 then
+    raise_application_error(-20205, 'no se puede borrar ni modificar datos fuera de horario');
+    end if;
+
+end;
+
+
+delete from empleados where employee_id = 187;
+
+--select to_char(sysdate, 'HH24')
+--from dual;

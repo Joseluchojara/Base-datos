@@ -1,0 +1,14 @@
+SELECT 
+    p.profesional, 
+    p.profesion, 
+    p.comuna, 
+    pr.bono_extra,
+    pr.bono_transporte
+FROM 
+    tabla_profesional p
+INNER JOIN 
+    tipo_contrato tc ON p.tipo_contrato_id = tc.tipo_contrato_id
+INNER JOIN 
+    profesion pf ON p.profesion_id = pf.profesion_id
+INNER JOIN 
+    profesiones pr ON pf.profesion_id = pr.profesion_id;

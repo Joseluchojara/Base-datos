@@ -1,0 +1,106 @@
+Paso 2: Crear el Package Specification
+Definimos la interfaz pública del paquete. Aquí es donde declaramos las funciones y procedimientos.
+-- Crear la especificación del paquete
+CREATE OR REPLACE PACKAGE pkg_rrhh IS
+    -- Declarar la función anios_ant, que devuelve el número de años de antigüedad de un empleado
+    FUNCTION anios_ant(v_id_employees NUMBER) RETURN NUMBER;
+    -- Declarar el procedimiento sueldo_por_annio, que actualiza los salarios de los empleados según su antigüedad
+    PROCEDURE sueldo_por_annio;
+END pkg_rrhh;
+/
+
+
+Paso 3: Crear el Package Body
+Definimos la implementación de las funciones y procedimientos declarados en la especificación. También agregamos manejo de excepciones.
+-- Crear el cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_rrhh IS
+
+    -- Implementación de la función anios_ant
+    FUNCTION anios_ant(v_id_employees NUMBER) RETURN NUMBER IS
+        v_anios_ant NUMBER;  -- Variable para almacenar los años de antigüedad
+    BEGIN
+        BEGIN
+            -- Calcular los años de antigüedad restando el año de contratación del año actual
+            SELECT EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM hire_date)
+            INTO v_anios_ant
+            FROM empleados
+            WHERE employee_id = v_id_employees;
+            
+            -- Devolver los años de antigüedad
+            RETURN v_anios_ant;
+        EXCEPTION
+            -- Manejar la excepción cuando no se encuentra el empleado
+            WHEN NO_DATA_FOUND THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Empleado no encontrado');
+            -- Manejar cualquier otra excepción
+            WHEN OTHERS THEN
+                RAISE_APPLICATION_ERROR(-20002, 'Error inesperado: ' || SQLERRM);
+        END;
+    END anios_ant;
+
+    -- Implementación del procedimiento sueldo_por_annio
+    PROCEDURE sueldo_por_annio IS
+        v_antigueda NUMBER;  -- Variable para almacenar los años de antigüedad
+    BEGIN
+        -- Iterar sobre todos los empleados
+        FOR r_empleados IN (SELECT hire_date, employee_id FROM empleados) LOOP
+            -- Comprobar si hoy es el aniversario de contratación del empleado
+            IF TO_CHAR(r_empleados.hire_date, 'dd/mm') = TO_CHAR(SYSDATE, 'dd/mm') THEN
+                BEGIN
+                    -- Obtener los años de antigüedad del empleado
+                    SELECT anios_ant(r_empleados.employee_id)
+                    INTO v_antigueda
+                    FROM dual;
+
+                    -- Actualizar el salario según la antigüedad
+                    IF v_antigueda BETWEEN 6 AND 7 THEN
+                        UPDATE empleados SET salary = salary + (salary * 0.08)
+                        WHERE employee_id = r_empleados.employee_id;
+                    ELSIF v_antigueda BETWEEN 9 AND 10 THEN
+                        UPDATE empleados SET salary = salary + (salary * 0.12)
+                        WHERE employee_id = r_empleados.employee_id;
+                    ELSIF v_antigueda > 11 THEN
+                        UPDATE empleados SET salary = salary + (salary * 0.15)
+                        WHERE employee_id = r_empleados.employee_id;
+                    END IF;
+                EXCEPTION
+                    -- Manejar la excepción cuando no se encuentra el empleado
+                    WHEN NO_DATA_FOUND THEN
+                        DBMS_OUTPUT.PUT_LINE('Empleado no encontrado para ID: ' || r_empleados.employee_id);
+                    -- Manejar cualquier otra excepción
+                    WHEN OTHERS THEN
+                        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+                END;
+            END IF;
+        END LOOP;
+    END sueldo_por_annio;
+
+END pkg_rrhh;
+/
+
+
+
+Paso 4: Crear el Trigger
+Creamos un trigger que actualizará automáticamente el campo fecha_actualizaciones antes de que cualquier registro sea actualizado en la tabla empleados.
+--Trigger
+
+-- Crear el trigger para actualizar la fecha de actualización
+CREATE OR REPLACE TRIGGER act_emp
+BEFORE UPDATE ON empleados
+FOR EACH ROW
+BEGIN 
+    -- Establecer la fecha de la última actualización al momento actual
+    :new.fecha_actualizaciones := SYSDATE;
+END act_emp;
+/
+
+
+Paso 5: Insertar Datos de Prueba
+Insertamos algunos registros en la tabla empleados para probar la funcionalidad del paquete y el trigger.
+
+
+-- Insertar datos de prueba en la tabla empleados
+INSERT INTO empleados (employee_id, hire_date, salary) VALUES (1, TO_DATE('01-07-2015', 'DD-MM-YYYY'), 50000);
+INSERT INTO empleados (employee_id, hire_date, salary) VALUES (2, TO_DATE('04-07-2017', 'DD-MM-YYYY'), 45000);
+INSERT INTO empleados (employee_id, hire_date, salary) VALUES (3, TO_DATE('01-07-2012', 'DD-MM-YYYY'), 55000);
+COMMIT;

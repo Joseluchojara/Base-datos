@@ -1,0 +1,77 @@
+1. Creación del PACKAGE
+
+-- Creación del paquete que contendrá los constructores, funciones y variables públicas
+CREATE OR REPLACE PACKAGE mi_paquete AS
+  -- Variables públicas
+  public_variable1 VARCHAR2(100);
+  public_variable2 NUMBER := 0;
+
+  -- Funciones públicas
+  FUNCTION funcion_saludo(p_nombre IN VARCHAR2) RETURN VARCHAR2;
+  FUNCTION funcion_suma(p_num1 IN NUMBER, p_num2 IN NUMBER) RETURN NUMBER;
+
+END mi_paquete;
+/
+
+2. Implementación de las Funciones Almacenadas
+
+-- Función almacenada para saludar a una persona
+CREATE OR REPLACE FUNCTION funcion_saludo(p_nombre IN VARCHAR2) RETURN VARCHAR2 AS
+  v_mensaje VARCHAR2(100);
+BEGIN
+  v_mensaje := 'Hola, ' || p_nombre || '! Bienvenido/a al sistema.';
+  RETURN v_mensaje;
+END funcion_saludo;
+/
+
+-- Función almacenada para sumar dos números
+CREATE OR REPLACE FUNCTION funcion_suma(p_num1 IN NUMBER, p_num2 IN NUMBER) RETURN NUMBER AS
+  v_resultado NUMBER;
+BEGIN
+  v_resultado := p_num1 + p_num2;
+  RETURN v_resultado;
+END funcion_suma;
+/
+
+
+3. Creación del TRIGGER
+En este ejemplo, asumimos que hay una tabla personas con una columna fecha_registro que se actualiza automáticamente antes de insertar una nueva fila.
+
+-- Creación de un trigger que se ejecuta antes de insertar en una tabla específica
+CREATE OR REPLACE TRIGGER before_insert_persona
+BEFORE INSERT ON personas
+FOR EACH ROW
+BEGIN
+  :NEW.fecha_registro := SYSDATE; -- Actualiza la fecha de registro con la fecha actual
+END before_insert_persona;
+/
+
+4. Desarrollo del Procedimiento Almacenado
+
+-- Procedimiento almacenado que procesa a todos los postulantes y genera la información requerida
+CREATE OR REPLACE PROCEDURE procesar_postulantes IS
+  v_nombre VARCHAR2(100);
+  v_edad NUMBER;
+  v_mensaje_saludo VARCHAR2(200);
+  v_suma_resultado NUMBER;
+BEGIN
+  -- Llamada a las funciones del paquete
+  v_mensaje_saludo := mi_paquete.funcion_saludo('Juan');
+  v_suma_resultado := mi_paquete.funcion_suma(10, 20);
+  
+  -- Uso de las funciones almacenadas
+  v_edad := calcular_edad(TO_DATE('1990-05-15', 'YYYY-MM-DD'));
+  INSERT INTO personas (nombre, edad)
+  VALUES ('Ana', v_edad);
+  
+  COMMIT;
+  
+  DBMS_OUTPUT.PUT_LINE('Proceso de postulantes completado.');
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END procesar_postulantes;
+/
+
+
+

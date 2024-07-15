@@ -1,0 +1,79 @@
+drop table comuna;
+create table comuna (idcomuna int, nombrecomuna varchar2(50));
+insert into comuna values (1,'Recoleta');
+insert into comuna values (2,'Huechuraba');
+insert into comuna values (3,'Quilicura');
+insert into comuna values (4,'Renca');
+insert into comuna values (5,'Colina');
+
+Drop table cliente;
+create table cliente (rut varchar2(12), nombre varchar2(50),
+            apellidop varchar2(50),
+            apellidom varchar2(50),
+            idcomuna int,
+            fechaingreso date);
+Insert into cliente values ('10200809-5','Jacinto','Varas', 'Varas',1,sysdate);
+Insert into cliente values ('12313212-5','Javier','Perez', 'Varas',2,sysdate);
+Insert into cliente values ('23423444-5','Jose','Rosales', 'Varas',3,sysdate);
+Insert into cliente values ('56456456-5','Julian','Mera', 'Varas',4,sysdate);
+Insert into cliente values ('76767576-5','Maria','Torres', 'Varas',1,sysdate);
+Insert into cliente values ('76767376-5','Barbara','Toro', 'Varas',1,sysdate);
+Insert into cliente values ('76767276-5','Jacqueline','Culver', 'Varas',2,sysdate);
+Insert into cliente values ('10200509-5','Sofia','Rojas', 'Varas',3,sysdate);
+Insert into cliente values ('10200609-5','Mario','Arias', 'Varas',4,sysdate);
+Insert into cliente values ('10200109-5','Eva','Perez', 'Varas',2,sysdate);
+
+drop table factura;            
+create table factura (numfac number(5),
+            rutcliente varchar2(12),
+            idproducto int);
+insert into factura values (1,'10200809-5',1);           
+insert into factura values (2,'76767576-5',2);           
+insert into factura values (3,'10200109-5',3);           
+insert into factura values (4,'76767276-5',2);           
+insert into factura values (5,'23423444-5',1);           
+insert into factura values (6,'56456456-5',3);           
+insert into factura values (7,'10200109-5',4);           
+
+Drop table producto;            
+Create table producto (idproducto int,
+                nombreproducto varchar2(50));
+insert into producto values (1,'auto');                
+insert into producto values (2,'moto');                
+insert into producto values (3,'bici');                
+insert into producto values (4,'patines');                
+insert into producto values (5,'bote');      
+
+
+-- CASO 1 Reporte que indique "Rut, nombre+apellidop, comuna, número factura y producto.
+
+SELECT c.rut, c.nombre || ' ' || c.apellidop "Nombre Completo",
+        p.nombrecomuna "Comuna",
+        f.numfac "Factura",
+        f.idproducto "ID Producto",
+        o.nombreproducto
+FROM Cliente c
+   JOIN comuna p on c.idcomuna = p.idcomuna
+   JOIN factura f on c.rut = f.rutcliente
+   JOIN producto o on f.idproducto = o.idproducto;
+
+
+-- CASO 2 Reporte que indque, todos los clientes que no han comprado
+SELECT c.rut, c.nombre || ' ' || c.apellidop "Nombre Completo",
+       f.numfac
+FROM Cliente c
+   LEFT JOIN factura f on c.rut = f.rutcliente 
+WHERE f.numfac is null;
+
+-- CASO 3 Reporte de clientes que compraron y productos no comprados
+SELECT c.rut, c.nombre || ' ' || c.apellidop "Nombre Completo",
+       f.numfac "Factura",
+       p.nombreproducto "Producto"
+FROM Cliente c
+   JOIN factura f on c.rut = f.rutcliente 
+   RIGHT JOIN producto p on f.idproducto = p.idproducto
+
+-- CASO 4 Reporte de Facturas, sus clientes y productos en general, 
+-- comprados y  no comprados
+
+

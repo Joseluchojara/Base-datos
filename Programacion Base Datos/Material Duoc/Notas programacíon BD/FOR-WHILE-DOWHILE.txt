@@ -1,0 +1,81 @@
+DECLARE 
+    V_VARIABLE NUMBER(3):=10;
+
+BEGIN
+    LOOP
+            DBMS_OUTPUT.PUT_LINE (V_VARIABLE);
+            V_VARIABLE:= V_VARIABLE +10 ;
+            EXIT WHEN V_VARIABLE = 50;
+    END LOOP;
+              
+END;
+--SE EJECUTA HASTA CUMPLIR LA CONDICION
+
+---------------------
+
+DECLARE 
+    V_VARIABLE NUMBER(3):=10;
+
+BEGIN
+    WHILE V_VARIABLE = 50
+    LOOP
+            DBMS_OUTPUT.PUT_LINE (V_VARIABLE);
+            V_VARIABLE:= V_VARIABLE +10 ;
+    END LOOP;
+              
+END;
+
+--SE EJECUTA CUANDO SE CUMPLE LA CONDICION
+
+---------------------
+
+
+DECLARE
+    V_VARIABLE NUMBER (3):=10;
+  
+BEGIN
+  FOR i in 5..10
+  LOOP
+  
+        DBMS_OUTPUT.PUT_LINE (V_VARIABLE);
+        v_variable := V_VARIABLE +10;
+  END LOOP;
+  
+END;
+----------------------
+DECLARE
+  V_SALARY EMPLOYEES.SALARY%TYPE;
+  V_ID_EMP NUMBER(4) := 100;
+  V_CANT_EMPLEADOS NUMBER (4);
+  V_CONTADOR NUMBER (4);
+  
+  
+BEGIN
+  
+    SELECT COUNT (EMPLOYEE_ID)
+    INTO V_CANT_EMPLEADOS
+    FROM EMPLOYEES;
+    
+    FOR I IN 1 .. V_CANT_EMPLEADOS
+    LOOP
+        SELECT SALARY
+        INTO V_SALARY
+        FROM EMPLOYEES
+        WHERE EMPLOYEE_ID = V_ID_EMP;
+        
+        IF V_SALARY < 7900 THEN
+            UPDATE EMPLOYEES SET SALARY = SALARY*1.25
+            WHERE EMPLOYEE_ID = V_ID_EMP;
+            
+            V_CONTADOR := V_CONTADOR +1;
+            
+            END IF;
+            
+            
+        
+        V_ID_EMP := V_ID_EMP+1;
+        END LOOP;
+        DBMS_OUTPUT.PUT('EN TOTAL SON  '||V_CANT_EMPLEADOS);
+        DBMS_OUTPUT.PUT('Y SE LE AUMENTO '||v_contador);
+END;
+

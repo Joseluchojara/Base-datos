@@ -1,0 +1,149 @@
+variables pl sql 
+y variables no sql
+DECLARE
+-- VARIABLES SIMPLES
+ V_NOMBRE  VARCHAR(20);
+ V_SUELDO NUMBER(8);
+BEGIN
+
+ SELECT FIRST_NAME||' '||LAST_NAME,SALARY
+ INTO V_NOMBRE ,V_SUELDO
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID =&ID_EMP;
+  
+ DBMS_OUTPUT.PUT_LINE ('EL EMPLEADO INGRESADO  SE LLAMA '||''|| V_NOMBRE ||''|| '  Y TIENE UN SUELDO DE :'||''||v_sueldo) ;
+
+END;
+=========================================================================================
+DECLARE
+-- VARIABLES SIMPLES
+--OTRA FORMA DE ASIGNA VALOR A LA VARIABLE DECLARANDO 
+ V_NOMBRE  VARCHAR(20) := 'MAURICIO';
+
+BEGIN
+-- OTRA FORMAS DE ASIGNAR VARIABLES 
+    V_NOMBRE := ' JUAN';
+  
+ DBMS_OUTPUT.PUT_LINE ('EL EMPLEADO INGRESADO  SE LLAMA '||''|| V_NOMBRE ||''|| '  Y TIENE UN SUELDO DE :'||''||v_sueldo) ;
+
+END;
+
+
+--BLOB = GUARDAR IMAGENES 
+--BFILE = MANIPULAR VIDEOS 
+--BOOLEAN=INDEFINI,TRUE OR FALSE 
+--DATE  TIMESTAMP
+--VARCHAR O GLOB 
+
+--===================================================
+--PSL INTERGER
+--===========================================================================================================
+DECLARE
+-- VARIABLES SIMPLES
+ V_NOMBRE  VARCHAR(20);
+ V_SUELDO NUMBER(8);
+ V_TELEFONO VARCHAR(15);
+BEGIN
+
+ SELECT FIRST_NAME||' '||LAST_NAME,SALARY,PHONE_NUMBER
+ INTO V_NOMBRE ,V_SUELDO,V_TELEFONO
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID =&ID_EMP;
+  
+ DBMS_OUTPUT.PUT_LINE ('EL EMPLEADO INGRESADO  SE LLAMA '||''|| V_NOMBRE ||''|| '  Y TIENE UN SUELDO DE :'||''||v_sueldo||''||'SU TELEFONO ES'||''||v_telefono) ;
+
+END;
+=================================================================================================================================================
+DECLARE
+-- VARIABLES SIMPLES
+ V_NOMBRE  VARCHAR(20);
+ V_SUELDO NUMBER(8);
+ V_TELEFONO VARCHAR(15);
+BEGIN
+
+ SELECT FIRST_NAME||' '||LAST_NAME,SALARY,PHONE_NUMBER
+ INTO V_NOMBRE ,V_SUELDO,V_TELEFONO
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID =&ID_EMP;
+  
+ DBMS_OUTPUT.PUT_LINE ('EL EMPLEADO INGRESADO  SE LLAMA '||''|| V_NOMBRE ||''|| '  Y TIENE UN SUELDO DE :'||''||v_sueldo||''||'SU TELEFONO ES'||''||v_telefono) ;
+
+END;
+
+
+-- RECUERDA  EEN UNA VARIABLE SOLO SE ALMACENA UN DATO NO PUEDES ALMACENAR MUCHOS DATODS 
+--RECUERDA NO SE PUEDE3 GUARDAR VACIO EN LAS VARIABLES 
+===========================================================================================================
+DECLARE
+V_RUT NUMBER(20):=&RUT;
+V_BONONIFIC NUMBER(20):=BONO;
+
+V_DIGITO VARCHAR(5);
+V_NOMBRE VARCHAR(20);
+V_SUELDO NUMBER(20);
+V_BONO NUMBER(10);
+BEGIN
+
+SELECT NOMBRE_EMP||''||APPATERNO_EMP,SUELDO_EMP,SUELDO_EMP ,NUMRUT_EMP||''||DVRUT_EMP
+       INTO  V_NOMBRE,V_SUELDO,V_RUT_DV
+FROM EMPLEADO
+WHERE NUMRUT_EMP= V_RUT;
+
+V_BONO := v_sueldo*v_bononific/100;
+
+DBMS_OUTPUT.PUT_LINE ('DATOS DE BONIFICACION EXTRA DE UN '||''||V_BONONIFIC||''||'DEL SUELDO');
+DBMS_OUTPUT.PUT_LINE('NOMBRE :'||V_NOMBRE);
+DBMS_OUTPUT.PUT_LINE('RUT :'||V_SUELDO);
+DBMS_OUTPUT.PUT_LINE('SUELDO :'||V_SUELDO);
+DBMS_OUTPUT.PUT_LINE('BONIFICACION'||v_bononific);
+
+END;
+==============================================================================================================================
+DECLARE
+V_VARIABLE_EXTERNA VARCHAR(40):= 'ESTA ES UNA VARIABLE EXTERNA';
+
+BEGIN 
+     
+       DECLARE 
+         V_VARIABLE_INTERNA VARCHAR(40):='ESTA ES UNA VARIABLE INTERNA ';
+       BEGIN 
+           DBMS_OUTPUT.PUT_LINE (V_VARIABLE_EXTERNA);
+           DBMS_OUTPUT.PUT_LINE (V_VARIABLE_INTERNA);
+    END; -- DIN DEL BLOQUE ANONIMO
+    
+    DBMS_OUTPUT.PUT_LINE (V_VARIABLE_EXTERNA);
+    
+
+END;
+==============================================================================================================================
+DECLARE
+ V_ID_EMP NUMBER(10):= &ID_EMP;-- SE DELCARA LA VARIABLE DEL 
+ V_ID_DEPART NUMBER (10);
+BEGIN
+ SELECT DEPARTMENT_ID
+ INTO V_ID_DEPART
+FROM EMPLOYEES
+WHERE EMPLOYEE_ID = V_ID_EMP;
+
+   DECLARE 
+   V_NOMBRE_DEPTO VARCHAR(50);
+   V_CANTIDAD_EMPLEADOS NUMBER (20);
+   
+   BEGIN
+   SELECT COUNT(*)
+   INTO V_CANTIDAD_EMPLEADOS
+   FROM EMPLOYEES
+   WHERE DEPARTMENT_ID =  V_ID_DEPART;
+   
+   SELECT DEPARTMENT_NAME
+   INTO V_NOMBRE_DEPTO
+   FROM departments
+   WHERE DEPARTMENT_ID = V_ID_DEPART;
+   DBMS_OUTPUT.PUT_LINE('EL EMPLEADO'||V_ID_EMP);
+   DBMS_OUTPUT.PUT_LINE('TRABAJA EN EL DEPARTAMENTO'||V_NOMBRE_DEPTO);
+   DBMS_OUTPUT.PUT_LINE(' YALLI TRABAJAN  '||V_CANTIDAD_EMPLEADOS||'EMPLEADOS');
+   END;
+END;
+================================================================================================
+
+

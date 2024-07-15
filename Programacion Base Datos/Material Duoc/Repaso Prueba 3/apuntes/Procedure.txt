@@ -1,0 +1,26 @@
+create or replace procedure aumento_anual is
+
+begin
+    for r_empleados in(select trunc( months_between(sysdate, hire_date)/12) as antiguedad, employee_id
+    from employees)
+    
+    loop
+    
+        if r_empelados.antiguedad >10 then
+            update employees
+            set salary = salary + 500
+            where employee_id = r_empleados.employee_id;
+            
+        elsif r_empleados.antiguedad <=10 then
+            update employees
+            set salary = salary + 300
+            where employee_id = r_empleados.employee_id;
+        end if;
+    
+    end loop;
+
+end aumento_anual;
+
+------
+SELECT EMPLOYEE_ID, FIRST_NAME, YEARS_BEWTWEEN(SYSDATE, HIRE_DATE)
+FROM EMPLOYEES;

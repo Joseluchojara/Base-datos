@@ -1,0 +1,64 @@
+DECLARE
+V_NOMBRE VARCHAR(20) := 'EDUARD';
+
+BEGIN
+
+    IF V_NOMBRE = 'JUAN' THEN
+        DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES JUAN');
+    ELSIF V_NOMBRE = 'EDUARDO' THEN
+        DBMS_OUTPUT.PUT_LINE('EL NOMBRE ES EDUARDO');
+        
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('EL NOMBRE NO ES JUAN NI EDUARDO');
+    END IF;
+
+END;
+
+/*---------------------------------------------------------------------------------------------------------------------------------
+*/
+/*CREAR UN BLOQUE ANONIMO PLSQL, QUE INGRESANDO EL ID DE EMPLEADO DE MANERA PARAMETRICA, TE PERMITA SUBIRLE EL SUELDO EN UN 25%
+SIEMPRE Y CUANDO TENGA UN SUELDO INFERIOR A 6400
+*/
+
+DECLARE
+    V_SUELDO EMPLOYEES.SALARY%TYPE;
+    V_ID_EMP EMPLOYEES.EMPLOYEE_ID%TYPE := &ID_EMP;
+
+BEGIN 
+    SELECT SALARY
+    INTO V_SUELDO
+    FROM EMPLOYEES
+    WHERE EMPLOYEE_ID = V_ID_EMP;
+    
+    
+    IF V_SUELDO < 6400 THEN
+    
+        UPDATE EMPLOYEES
+        SET SALARY = SALARY *1.25
+        WHERE EMPLOYEE_ID = V_ID_EMP;
+        DBMS_OUTPUT.put_line('SE AUMENTO EL SUELDO');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE(' NO SE AUMENTO EL SUELDO POR TENER UN SUELDO SUPERIOR A 6400');
+        DBMS_OUTPUT.PUT_LINE(' POR TENER UN SUELDO DE'||V_SUELDO);
+    END IF;
+END;
+/*---------------------------------------------------------------------------------------------------------------------------------
+                                             CASE */
+DECLARE
+V_CALIDAD VARCHAR2(1) :=&CALIDAD;
+V_VALORACION VARCHAR(20);
+
+BEGIN
+    V_VALORACION :=
+       CASE V_CALIDAD
+        WHEN 'A' THEN 'EXECELENTE'
+        WHEN 'B' THEN 'MUY BUENO'
+        WHEN 'C' THEN ' BUENO'
+        ELSE ' NO EXISTE CALIDAD'
+   
+      END;
+      DBMS_OUTPUT.PUT_LINE('CALIDAD:'|| V_CALIDAD|| ' VALORACION:' || V_VALORACION);
+
+END;
+ 
+    

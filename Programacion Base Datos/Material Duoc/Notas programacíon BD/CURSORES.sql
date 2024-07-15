@@ -1,0 +1,28 @@
+
+
+DECLARE 
+    CURSOR cursor_datos_empleados is
+    SELECT FIRST_NAME||' '||LAST_NAME,SALARY,HIRE_DATE
+    FROM EMPLOYEES;
+    
+    TYPE RECORD_DATOS_EMPLEADOS IS RECORD(
+        NOMBRE VARCHAR(100),
+        SALARY NUMBER,
+        FECHA_CONTRATA DATE
+    );
+    
+    R_DATOS_EMPLEADOS RECORD_DATOS_EMPLEADOS;
+
+    
+
+BEGIN
+    OPEN cursor_datos_empleados;
+    
+    FETCH cursor_datos_empleados into R_DATOS_EMPLEADOS;
+    
+    DBMS_OUTPUT.PUT_LINE(R_DATOS_EMPLEADOS.NOMBRE);
+    
+    CLOSE CURSOR_DATOS_EMPLEADOS;
+
+
+END;
