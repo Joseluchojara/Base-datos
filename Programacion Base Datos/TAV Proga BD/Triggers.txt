@@ -1,0 +1,186 @@
+
+-- CREAMOS LA TABLA PERSONAL
+
+CREATE TABLE RRHH_PERSONAL(
+ID_PERSONAL NUMBER(10),
+NOMBRE      VARCHAR2(50),
+APELLIDO    VARCHAR2(80),
+SECCION     VARCHAR(80),
+SUELDO      NUMBER(7)
+);
+
+
+-- CREAMOS TABLA QUE RECIBE LOG DEL TRIGGER
+
+ CREATE TABLE Log_Triggers (
+    log_id NUMBER PRIMARY KEY,
+    accion VARCHAR2(255),
+    fecha DATE,
+    detalle VARCHAR2(255),
+    usuario VARCHAR2(50)  
+);     
+
+
+-- Creamos secuencia para usar
+
+CREATE SEQUENCE SEQ_Log_Triggers
+START WITH 1
+INCREMENT BY 1;
+
+
+-- Creamos nuestro Triggers
+
+CREATE OR REPLACE TRIGGER TGR_LOG_INSERT_RRHH_PEROSONAL
+AFTER INSERT ON RRHH_PERSONAL -- AFETER SE EJECUTA DESPUES DE LA OPERACION - BEFORE SE EJECUTA ANTES DE LA OPERACION
+FOR EACH ROW  -- EL TRIGGER SE EJECUTA POR CADA FILA AFECTADA
+BEGIN
+    -- Insertar un registro en la tabla Log_Triggers con el usuario
+    INSERT INTO Log_Triggers (log_id, accion, fecha, detalle, usuario)
+    VALUES (SEQ_Log_Triggers.NEXTVAL, 
+            'Nuevo Empleado', 
+            SYSDATE, 
+            'ID_PERSONAL: ' || :NEW.ID_PERSONAL || ', NOMBRE: ' || :NEW.NOMBRE  || ' SECCION: ' || :NEW.SECCION,
+            USER);  
+END TGR_LOG_INSERT_VENTA;
+
+-- PROBAMOS CON UN INSERT 
+INSERT INTO  RRHH_PERSONAL VALUES(886,'ROBERTO','SALINAS','BODEGA',5000);
+
+-- COMPROBAMOS 
+SELECT * FROM RRHH_PERSONAL;
+
+
+-- COMPROBAMOS EL LOG DEL TRIGGER
+SELECT * FROM Log_Triggers;
+
+/**************procedimeito ejecuta insert y prueba trigger************************/
+
+CREATE OR REPLACE PROCEDURE INSERTAR_EMP_RRHH IS
+    -- CURSOR QUE TREA LOS EMPLEADOS 
+    CURSOR c_empleados IS
+        SELECT employee_id, first_name, last_name, job_id, salary
+        FROM employees;
+    
+    -- Variables
+    V_EMPLEADO_ID   employees.employee_id%TYPE;
+    V_NOMBRE        employees.first_name%TYPE;
+    V_APELLIDO      employees.last_name%TYPE;
+    V_SECCION       employees.job_id%TYPE;
+    V_SUELDO        employees.salary%TYPE;
+    
+BEGIN
+    -- Abrimos el cursor
+    OPEN c_empleados;
+    
+    -- Recorremos el cursor con un loop
+    LOOP
+        FETCH c_empleados INTO V_EMPLEADO_ID, V_NOMBRE, V_APELLIDO, V_SECCION, V_SUELDO;
+        
+        -- SI NO TENGO MAS FILAS SALGO
+        EXIT WHEN c_empleados%NOTFOUND;
+        
+     
+        DECLARE
+            v_count NUMBER;
+        BEGIN
+            -- VERIFICAMOS SI ELMPLEADO EXISTE EN TABLA RRHH_PERSONAL
+            SELECT COUNT(*)
+            INTO v_count
+            FROM RRHH_PERSONAL
+            WHERE ID_PERSONAL = V_EMPLEADO_ID;
+            
+            --SI NO EXISTE INSERTAMOS
+            IF v_count = 0 THEN
+                INSERT INTO RRHH_PERSONAL (ID_PERSONAL, NOMBRE, APELLIDO, SECCION, SUELDO)
+                VALUES (V_EMPLEADO_ID, V_NOMBRE, V_APELLIDO, V_SECCION, V_SUELDO);
+            END IF;
+        END;
+    END LOOP;
+    
+    -- Cerramos el cursor
+    CLOSE c_empleados;
+    
+    -- Confirmamos los cambios
+    COMMIT;
+    
+EXCEPTION
+    -- Manejo de errores
+    WHEN OTHERS THEN
+        -- En caso de error, hacemos rollback de los cambios
+        ROLLBACK;
+        -- Mostramos el error
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END INSERTAR_EMP_RRHH;
+
+-- Ejecutamps procedimiento
+
+EXEC INSERTAR_EMP_RRHH;
+
+
+-- COMPROBAMOS 
+SELECT * FROM RRHH_PERSONAL;
+
+
+-- COMPROBAMOS EL LOG DEL TRIGGER
+SELECT * FROM Log_Triggers;
+
+/***************************************TRIGGER A NIVEL SENTENCIA ********************************/
+
+CREATE OR REPLACE TRIGGER TRG_SEGURIDAD_EMP
+BEFORE INSERT ON RRHH_PERSONAL -- AFETER SE EJECUTA DESPUES DE LA OPERACION - BEFORE SE EJECUTA ANTES DE LA OPERACION
+BEGIN
+IF (TO_CHAR(SYSDATE,'HH24:MI') NOT BETWEEN '08:00' AND '12:00') THEN
+      RAISE_APPLICATION_ERROR(-20500, 
+      'Se debe insertar en tabla EMPLEADOS sólo durante horas de trabajo.');
+   END IF;
+END;
+
+
+-- PROBAMOS CON UN INSERT 
+INSERT INTO  RRHH_PERSONAL VALUES(884,'ROBERTO','SALINAS','BODEGA',5000);
+
+
+/****************************************************************************************/
+
+-- Creare tabla RRHH_PERSONAL_2 para ejecutar este ejemplo
+
+CREATE TABLE RRHH_PERSONAL_2 AS
+SELECT * FROM RRHH_PERSONAL WHERE 1 = 0;
+
+
+CREATE OR REPLACE TRIGGER TRG_VALIDA_RRHH_PERSONAL_22
+BEFORE INSERT OR UPDATE OR DELETE ON RRHH_PERSONAL_2 BEGIN
+ IF TO_CHAR(SYSDATE,'HH24')  NOT BETWEEN '08' AND '18' THEN
+       IF DELETING THEN 
+           RAISE_APPLICATION_ERROR(-20502, 'Se debe eliminar desde tabla EMPLEADOS sólo durante horas de trabajo.');
+       ELSIF INSERTING THEN 
+            RAISE_APPLICATION_ERROR(-20500, 'Se debe insertar en tabla EMPLEADOS solo durante horas de trabajo.');
+       ELSIF UPDATING('SALARY') THEN
+           RAISE_APPLICATION_ERROR(-20503, 'Se debe actualizar salario sólo durante horas de trabajo.');
+       END IF;
+ END IF;
+END;
+
+-- PROBAMOS CON UN INSERT 
+INSERT INTO  RRHH_PERSONAL_2 VALUES(884,'ROBERTO','SALINAS','BODEGA',5000);
+
+-- COMPROBAMOS 
+SELECT * FROM RRHH_PERSONAL_2;
+
+-- CAMBIAMOS LA HORA 
+CREATE OR REPLACE TRIGGER TRG_VALIDA_RRHH_PERSONAL_22
+BEFORE INSERT OR UPDATE OR DELETE ON RRHH_PERSONAL_2 BEGIN
+ IF TO_CHAR(SYSDATE,'HH24')  NOT BETWEEN '08' AND '10' THEN
+       IF DELETING THEN 
+           RAISE_APPLICATION_ERROR(-20502, 'Se debe eliminar desde tabla RRHH_PERSONAL_2 sólo durante horas de trabajo.');
+       ELSIF INSERTING THEN 
+            RAISE_APPLICATION_ERROR(-20500, 'Se debe insertar en tabla RRHH_PERSONAL_2 solo durante horas de trabajo.');
+       ELSIF UPDATING('SALARY') THEN
+           RAISE_APPLICATION_ERROR(-20503, 'Se debe actualizar salario sólo durante horas de trabajo.');
+       END IF;
+ END IF;
+END;
+
+-- lo eliminaremos fuera de hora
+
+DELETE FROM RRHH_PERSONAL_2 WHERE ID_PERSONAL = 884;

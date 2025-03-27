@@ -1,0 +1,135 @@
+
+-- ESPECIFICACION DE NUESTTRO PACKAGE CON LOS OBEJETOS QUE OCUPAREMOS
+CREATE OR REPLACE PACKAGE PKG_TIENDA AS
+
+    -- Función 1: trae el codigo del cliente
+    FUNCTION NUM_CLIENTE(p_correo VARCHAR) RETURN NUMBER;
+    
+      -- Funcion 2: trae el numero de pedido
+    FUNCTION NUM_PEDIDO(p_cod_cliente NUMBER) RETURN NUMBER;
+    
+     -- Función 3: trae el total en productos del pedido
+    FUNCTION CAN_PRODUCTOS_CLI(p_cliente_id NUMBER) RETURN NUMBER;
+
+    -- Función 4: trae el total en dinero del pedido
+    FUNCTION TOTAL_PEDIDO(p_pedido_id NUMBER) RETURN NUMBER;
+
+    -- Procedimiento 1: Agregar un producto a un pedido  
+    PROCEDURE SP_GENERA_VENTA(p_id_cliente IN NUMBER, p_num_pedido IN NUMBER,p_cantidad IN NUMBER, p_total IN NUMBER ); 
+    
+
+END PKG_TIENDA;
+
+
+/*********************************************************************************************/
+
+
+CREATE OR REPLACE PACKAGE BODY PKG_TIENDA AS
+
+-- Función para traer cod_cliente
+   FUNCTION NUM_CLIENTE(p_correo VARCHAR) RETURN NUMBER IS
+        v_id_cliente NUMBER;
+    BEGIN
+         SELECT CLIENTE_ID
+          INTO v_id_cliente
+          FROM CLIENTES
+          where correo =p_correo;
+          
+      RETURN v_id_cliente;
+      
+    END NUM_CLIENTE;
+    
+    
+    -- Función para traer cod_pedido
+   FUNCTION NUM_PEDIDO(p_cod_cliente NUMBER) RETURN NUMBER IS
+        v_id_PEDIDO NUMBER;
+    BEGIN
+         SELECT PEDIDO_ID
+          INTO v_id_PEDIDO
+          FROM PEDIDOS
+          where CLIENTE_ID =p_cod_cliente;
+          
+      RETURN v_id_PEDIDO;
+      
+    END NUM_PEDIDO;
+    
+
+    -- Función para obtener la cantidad total de productos para un cliente
+    FUNCTION CAN_PRODUCTOS_CLI(p_cliente_id NUMBER) RETURN NUMBER IS
+        v_cantidad NUMBER := 0;
+    BEGIN
+        SELECT SUM(dp.cantidad)
+        INTO v_cantidad
+        FROM Pedidos ped
+        JOIN Detalle_Pedido dp ON ped.pedido_id = dp.pedido_id
+        WHERE ped.cliente_id = p_cliente_id;
+        RETURN v_cantidad;
+    END CAN_PRODUCTOS_CLI;
+    
+    
+    -- Función para calcular el total de un pedido
+    FUNCTION TOTAL_PEDIDO(p_pedido_id NUMBER) RETURN NUMBER IS
+        v_total NUMBER := 0;
+    BEGIN
+        SELECT SUM(dp.cantidad * p.precio)
+        INTO v_total
+        FROM Detalle_Pedido dp
+        JOIN Producto p ON dp.producto_id = p.producto_id
+        WHERE dp.pedido_id = p_pedido_id;
+        RETURN v_total;
+    END total_pedido;
+    
+    -- Procedimiento que genera la venta en sistema.
+    PROCEDURE SP_GENERA_VENTA(p_id_cliente IN NUMBER, p_num_pedido IN NUMBER,p_cantidad IN NUMBER, p_total IN NUMBER ) IS
+    
+    v_nombre varchar(100);
+    v_correo varchar(100);
+    
+    BEGIN
+       
+   SELECT 
+      NOMBRE,
+      CORREO
+      INTO v_nombre,v_correo
+      FROM CLIENTES 
+      WHERE CLIENTE_ID = p_id_cliente;
+      
+    --  EXECUTE IMMEDIATE 'TRUNCATE TABLE VENTA';
+      
+      INSERT INTO VENTA VALUES(p_id_cliente,v_nombre,v_correo,p_num_pedido,p_cantidad,p_total);       
+       
+        COMMIT;
+    END SP_GENERA_VENTA;
+   
+END PKG_TIENDA;
+
+
+/*******************************************EJECUCION**************************************************/
+
+DECLARE 
+
+    v_correo VARCHAR(100) :='ANA.GARCIA@GMAIL.COM';
+    
+    
+    v_cod_cli NUMBER;
+    v_cantidad_productors NUMBER;
+    v_total NUMBER;
+    v_num_pedido NUMBER;
+
+BEGIN 
+
+    v_cod_cli := PKG_TIENDA.num_cliente(v_correo);
+    v_num_pedido:= PKG_TIENDA.NUM_PEDIDO(v_cod_cli);
+    v_cantidad_productors:= PKG_TIENDA.CAN_PRODUCTOS_CLI(v_cod_cli);    
+    v_total := PKG_TIENDA.TOTAL_PEDIDO(v_num_pedido);      
+   
+    
+     -- Llamada al procedimiento SP_CAMBIAR_DEPTO 
+    PKG_TIENDA.SP_GENERA_VENTA(v_cod_cli, v_num_pedido,v_cantidad_productors,v_total);
+
+END;
+
+/***********************VALIDAR*********************************************/
+
+
+SELECT * FROM VENTA;

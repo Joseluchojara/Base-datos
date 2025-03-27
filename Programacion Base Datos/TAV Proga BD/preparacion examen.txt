@@ -1,0 +1,63 @@
+CREATE OR REPLACE PACKAGE pkg_becas AS
+    -- Variables públicas
+    v_puntaje_minimo NUMBER := 50;
+    v_total_postulantes NUMBER := 0;
+
+    -- Funciones
+    FUNCTION calcular_puntaje(p_id_postulante NUMBER) RETURN NUMBER;
+    FUNCTION es_elegible(p_id_postulante NUMBER) RETURN BOOLEAN;
+
+    -- Procedimiento
+    PROCEDURE procesar_postulaciones;
+END pkg_becas;
+/
+
+CREATE OR REPLACE PACKAGE BODY pkg_becas AS
+    -- Función para calcular el puntaje de un postulante
+    FUNCTION calcular_puntaje(p_id_postulante NUMBER) RETURN NUMBER IS
+        v_puntaje NUMBER := 0;
+    BEGIN
+        SELECT (criterio1 + criterio2 + criterio3 + criterio4 + criterio_extra1 + criterio_extra2)
+        INTO v_puntaje
+        FROM postulaciones
+        WHERE id_postulante = p_id_postulante;
+        
+        RETURN v_puntaje;
+    END calcular_puntaje;
+
+    -- Función para verificar si un postulante es elegible
+    FUNCTION es_elegible(p_id_postulante NUMBER) RETURN BOOLEAN IS
+    BEGIN
+        RETURN calcular_puntaje(p_id_postulante) >= v_puntaje_minimo;
+    END es_elegible;
+
+    -- Procedimiento para procesar postulaciones y generar informe
+    PROCEDURE procesar_postulaciones IS
+        CURSOR cur_postulantes IS
+            SELECT id_postulante, nombre FROM postulaciones;
+        v_puntaje NUMBER;
+    BEGIN
+        FOR postulante IN cur_postulantes LOOP
+            v_puntaje := calcular_puntaje(postulante.id_postulante);
+            IF v_puntaje >= v_puntaje_minimo THEN
+                INSERT INTO seleccionados (id_postulante, nombre, puntaje)
+                VALUES (postulante.id_postulante, postulante.nombre, v_puntaje);
+            END IF;
+        END LOOP;
+    END procesar_postulaciones;
+END pkg_becas;
+/
+
+-- Trigger para validar puntaje al insertar o actualizar una postulación
+CREATE OR REPLACE TRIGGER trg_validar_postulacion
+BEFORE INSERT OR UPDATE ON postulaciones
+FOR EACH ROW
+DECLARE
+    v_puntaje NUMBER;
+BEGIN
+    v_puntaje := pkg_becas.calcular_puntaje(:NEW.id_postulante);
+    IF v_puntaje < pkg_becas.v_puntaje_minimo THEN
+        RAISE_APPLICATION_ERROR(-20001, 'El postulante no cumple con el puntaje mínimo requerido.');
+    END IF;
+END trg_validar_postulacion;
+/

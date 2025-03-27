@@ -1,0 +1,140 @@
+/*********************************SP_REGISTRA_ERRORES******************************************/
+
+CREATE OR REPLACE PROCEDURE SP_REGISTRA_ERRORES (
+    p_rutina_error   IN VARCHAR2,
+    p_mensaje_error  IN VARCHAR2
+) IS
+BEGIN
+-- Intentamos insertar el error
+    INSERT INTO ERROR_SISTEMA (sec_error, rutina_error, mensaje_error)
+    VALUES (ERROR_REGISTRO.NEXTVAL, p_rutina_error, p_mensaje_error);  
+    
+EXCEPTION
+    WHEN OTHERS THEN
+            
+               DBMS_OUTPUT.PUT_LINE('Error al insertar en ERROR_SISTEMA: ' || SQLERRM);
+END SP_REGISTRA_ERRORES;
+
+/**************************funcion permito **************************/
+
+
+CREATE OR REPLACE FUNCTION FNC_CONS_PERMITIDOS(P_ESPECIE IN VARCHAR2) 
+RETURN VARCHAR IS
+
+    v_permitida VARCHAR2(3);
+
+BEGIN
+    -- Intentamos obtener el valor de PERMITIDA
+    SELECT PERMITIDA 
+    INTO v_permitida
+    FROM EJEMPLARES_PERMITIDOS 
+    WHERE NOMBRE_ESPECIE = P_ESPECIE;
+
+    
+    RETURN v_permitida;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Si ocurre un error inesperado, lo registramos
+       -- SP_REGISTRA_ERRORES('FNC_CONS_PERMITIDOS', 'Error inesperado: ' || SQLERRM);
+        
+        -- Retornamos NULL en caso de error
+        RETURN NULL;
+END FNC_CONS_PERMITIDOS;
+
+/**************************funcion id **************************/
+
+CREATE OR REPLACE FUNCTION FNC_CONS_ID(P_ESPECIE IN VARCHAR) 
+RETURN VARCHAR IS
+
+    v_id NUMBER;
+
+BEGIN
+    -- Intentamos obtener el valor de PERMITIDA
+    SELECT id_especie 
+    INTO v_id
+    FROM EJEMPLARES_PERMITIDOS 
+    WHERE NOMBRE_ESPECIE = P_ESPECIE;
+
+    
+    RETURN v_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Si ocurre un error inesperado, lo registramos
+       -- SP_REGISTRA_ERRORES('FNC_CONS_PERMITIDOS', 'Error inesperado: ' || SQLERRM);
+        
+        -- Retornamos NULL en caso de error
+        RETURN NULL;
+END FNC_CONS_ID;
+
+/*******************************PACKAGE DE INSERT **************************/
+
+CREATE OR REPLACE PACKAGE PKG_ZOO_GESTTION_PERMITIDOS AS
+
+-- Procedimiento 1: Agregar un animal permitido.
+    PROCEDURE SE_INSERTA_EJEMPLARES(p_id_especie IN NUMBER, p_nombre IN VARCHAR, p_raza IN VARCHAR,p_sexo IN VARCHAR, p_edad IN NUMBER ); 
+
+END;
+
+
+CREATE OR REPLACE PACKAGE BODY PKG_ZOO_GESTTION_PERMITIDOS AS
+
+    PROCEDURE SE_INSERTA_EJEMPLARES (p_id_especie IN NUMBER, p_nombre IN VARCHAR, p_raza IN VARCHAR,p_sexo IN VARCHAR, p_edad IN NUMBER )
+    IS
+    
+    BEGIN
+    
+    INSERT INTO EJEMPLAR VALUES(p_id_especie, ejemplares.nextval,p_nombre,p_raza,p_sexo,p_edad);
+    
+    END SE_INSERTA_EJEMPLARES;
+
+END PKG_ZOO_GESTTION_PERMITIDOS;
+
+/*****************************++TRIGGER******************************************/
+
+CREATE OR REPLACE TRIGGER TGR_LOG_INSERT_EJEMPLAR
+AFTER INSERT ON EJEMPLAR -- AFETER SE EJECUTA DESPUES DE LA OPERACION - BEFORE SE EJECUTA ANTES DE LA OPERACION
+FOR EACH ROW  -- EL TRIGGER SE EJECUTA POR CADA FILA AFECTADA
+BEGIN
+    -- Insertar un registro en la tabla Log_Triggers con el usuario
+    INSERT INTO Log_Triggers (log_id, accion, fecha, detalle, usuario)
+    VALUES (SEQ_Log_Triggers.NEXTVAL, 
+            'Nuevo EJEMPLAR', 
+            SYSDATE, 
+            'ID_EJEMPLAR: ' || :NEW.ID_EJEMPLAR  || ', NOMBRE: ' || :NEW.NOMBRE  || ' EDAD: ' || :NEW.EDAD || ' SEXO: ' || :NEW.SEXO ,
+            USER);  
+END TGR_LOG_INSERT_EJEMPLAR;
+
+
+
+/**********************************++ejecucion******************************/
+
+
+DECLARE
+v_animal varchar2(30) := 'GATORRR';
+v_permite varchar2(3);
+v_id number;
+
+BEGIN
+
+v_permite := FNC_CONS_PERMITIDOS(v_animal);
+v_id :=FNC_CONS_ID(v_animal);
+
+IF v_permite = 'SI' THEN
+    PKG_ZOO_GESTTION_PERMITIDOS.SE_INSERTA_EJEMPLARES(v_id, 'CESARITO', 'POLLO', 'M', 6); 
+ELSIF v_permite = 'NO' THEN
+    SP_REGISTRA_ERRORES('FNC_CONS_PERMITIDOS', 'Especie NO permitida: ' || v_animal);
+ELSE
+    SP_REGISTRA_ERRORES('FNC_CONS_PERMITIDOS', 'Especie NO existe en nuestros registros: ' || v_animal);
+END IF;
+
+END ;
+
+/**************************+COMPROBAMOS ***************/
+
+SELECT * FROM EJEMPLAR;
+
+SELECT * FROM ERROR_SISTEMA;
+
+SELECT * FROM Log_Triggers ;
